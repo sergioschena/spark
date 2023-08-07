@@ -403,8 +403,7 @@ class DefaultParamsWritable(MLWritable):
             return DefaultParamsWriter(self)
         else:
             raise TypeError(
-                "Cannot use DefaultParamsWritable with type %s because it does not "
-                + " extend Params.",
+                "Cannot use DefaultParamsWritable with type %s because it does not " + " extend Params.",
                 type(self),
             )
 
@@ -424,21 +423,19 @@ class DefaultParamsWriter(MLWriter):
         self.instance = instance
 
     def saveImpl(self, path: str) -> None:
-        DefaultParamsWriter.saveMetadata(self.instance, path, self.sc)
+        DefaultParamsWriter.saveMetadata(self.instance, path, self.sparkSession)
 
     @staticmethod
     def extractJsonParams(instance: "Params", skipParams: Sequence[str]) -> Dict[str, Any]:
         paramMap = instance.extractParamMap()
-        jsonParams = {
-            param.name: value for param, value in paramMap.items() if param.name not in skipParams
-        }
+        jsonParams = {param.name: value for param, value in paramMap.items() if param.name not in skipParams}
         return jsonParams
 
     @staticmethod
     def saveMetadata(
         instance: "Params",
         path: str,
-        sc: "SparkContext",
+        sparkSession: SparkSession,
         extraMetadata: Optional[Dict[str, Any]] = None,
         paramMap: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -462,9 +459,9 @@ class DefaultParamsWriter(MLWriter):
         """
         metadataPath = os.path.join(path, "metadata")
         metadataJson = DefaultParamsWriter._get_metadata_to_save(
-            instance, sc, extraMetadata, paramMap
+            instance, sparkSession.sparkContext, extraMetadata, paramMap
         )
-        sc.parallelize([metadataJson], 1).saveAsTextFile(metadataPath)
+        sparkSession.createDataFrame([metadataJson], "string").repartition(1).write.text(metadataPath)
 
     @staticmethod
     def _get_metadata_to_save(
@@ -557,7 +554,7 @@ class DefaultParamsReader(MLReader[RL]):
         return getattr(m, parts[-1])
 
     def load(self, path: str) -> RL:
-        metadata = DefaultParamsReader.loadMetadata(path, self.sc)
+        metadata = DefaultParamsReader.loadMetadata(path, self.sparkSession)
         py_type: Type[RL] = DefaultParamsReader.__get_class(metadata["class"])
         instance = py_type()
         cast("Params", instance)._resetUid(metadata["uid"])
@@ -565,19 +562,20 @@ class DefaultParamsReader(MLReader[RL]):
         return instance
 
     @staticmethod
-    def loadMetadata(path: str, sc: "SparkContext", expectedClassName: str = "") -> Dict[str, Any]:
+    def loadMetadata(path: str, sparkSession: SparkSession, expectedClassName: str = "") -> Dict[str, Any]:
         """
         Load metadata saved using :py:meth:`DefaultParamsWriter.saveMetadata`
 
         Parameters
         ----------
         path : str
-        sc : :py:class:`pyspark.SparkContext`
+        sparkSession : :py:class:`pyspark.SparkSession`
         expectedClassName : str, optional
             If non empty, this is checked against the loaded metadata.
         """
         metadataPath = os.path.join(path, "metadata")
-        metadataStr = sc.textFile(metadataPath, 1).first()
+        metadataRow = sparkSession.read.text(metadataPath).first()
+        metadataStr = metadataRow[0] if metadataRow else None
         loadedVals = DefaultParamsReader._parseMetaData(metadataStr, expectedClassName)
         return loadedVals
 
@@ -597,9 +595,10 @@ class DefaultParamsReader(MLReader[RL]):
         metadata = json.loads(metadataStr)
         className = metadata["class"]
         if len(expectedClassName) > 0:
-            assert className == expectedClassName, (
-                "Error loading metadata: Expected "
-                + "class name {} but found class name {}".format(expectedClassName, className)
+            assert (
+                className == expectedClassName
+            ), "Error loading metadata: Expected " + "class name {} but found class name {}".format(
+                expectedClassName, className
             )
         return metadata
 
@@ -637,12 +636,12 @@ class DefaultParamsReader(MLReader[RL]):
         return metadata["class"].startswith("pyspark.ml.")
 
     @staticmethod
-    def loadParamsInstance(path: str, sc: "SparkContext") -> RL:
+    def loadParamsInstance(path: str, sparkSession: SparkSession) -> RL:
         """
         Load a :py:class:`Params` instance from the given path, and return it.
         This assumes the instance inherits from :py:class:`MLReadable`.
         """
-        metadata = DefaultParamsReader.loadMetadata(path, sc)
+        metadata = DefaultParamsReader.loadMetadata(path, sparkSession)
         if DefaultParamsReader.isPythonParamsInstance(metadata):
             pythonClassName = metadata["class"]
         else:

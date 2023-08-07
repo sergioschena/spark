@@ -89,7 +89,7 @@ from pyspark.ml.util import (
 from pyspark.ml.wrapper import JavaParams, JavaPredictor, JavaPredictionModel, JavaWrapper
 from pyspark.ml.common import inherit_doc
 from pyspark.ml.linalg import Matrix, Vector, Vectors, VectorUDT
-from pyspark.sql import DataFrame, Row
+from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql.functions import udf, when
 from pyspark.sql.types import ArrayType, DoubleType
 from pyspark.storagelevel import StorageLevel
@@ -311,9 +311,7 @@ class _JavaProbabilisticClassifier(
 
 
 @inherit_doc
-class _JavaProbabilisticClassificationModel(
-    ProbabilisticClassificationModel, _JavaClassificationModel[T]
-):
+class _JavaProbabilisticClassificationModel(ProbabilisticClassificationModel, _JavaClassificationModel[T]):
     """
     Java Model produced by a ``ProbabilisticClassifier``.
     """
@@ -734,9 +732,7 @@ class LinearSVC(
                  aggregationDepth=2, maxBlockSizeInMB=0.0):
         """
         super(LinearSVC, self).__init__()
-        self._java_obj = self._new_java_obj(
-            "org.apache.spark.ml.classification.LinearSVC", self.uid
-        )
+        self._java_obj = self._new_java_obj("org.apache.spark.ml.classification.LinearSVC", self.uid)
         kwargs = self._input_kwargs
         self.setParams(**kwargs)
 
@@ -881,9 +877,7 @@ class LinearSVCModel(
         if self.hasSummary:
             return LinearSVCTrainingSummary(super(LinearSVCModel, self).summary)
         else:
-            raise RuntimeError(
-                "No training summary available for this %s" % self.__class__.__name__
-            )
+            raise RuntimeError("No training summary available for this %s" % self.__class__.__name__)
 
     def evaluate(self, dataset: DataFrame) -> "LinearSVCSummary":
         """
@@ -1246,8 +1240,7 @@ class LogisticRegression(
         lowerBoundsOnIntercepts: Optional[Vector] = ...,
         upperBoundsOnIntercepts: Optional[Vector] = ...,
         maxBlockSizeInMB: float = ...,
-    ):
-        ...
+    ): ...
 
     @overload
     def __init__(
@@ -1273,8 +1266,7 @@ class LogisticRegression(
         lowerBoundsOnIntercepts: Optional[Vector] = ...,
         upperBoundsOnIntercepts: Optional[Vector] = ...,
         maxBlockSizeInMB: float = ...,
-    ):
-        ...
+    ): ...
 
     @keyword_only
     def __init__(
@@ -1314,9 +1306,7 @@ class LogisticRegression(
         If the threshold and thresholds Params are both set, they must be equivalent.
         """
         super(LogisticRegression, self).__init__()
-        self._java_obj = self._new_java_obj(
-            "org.apache.spark.ml.classification.LogisticRegression", self.uid
-        )
+        self._java_obj = self._new_java_obj("org.apache.spark.ml.classification.LogisticRegression", self.uid)
         kwargs = self._input_kwargs
         self.setParams(**kwargs)
         self._checkThresholdConsistency()
@@ -1345,8 +1335,7 @@ class LogisticRegression(
         lowerBoundsOnIntercepts: Optional[Vector] = ...,
         upperBoundsOnIntercepts: Optional[Vector] = ...,
         maxBlockSizeInMB: float = ...,
-    ) -> "LogisticRegression":
-        ...
+    ) -> "LogisticRegression": ...
 
     @overload
     def setParams(
@@ -1372,8 +1361,7 @@ class LogisticRegression(
         lowerBoundsOnIntercepts: Optional[Vector] = ...,
         upperBoundsOnIntercepts: Optional[Vector] = ...,
         maxBlockSizeInMB: float = ...,
-    ) -> "LogisticRegression":
-        ...
+    ) -> "LogisticRegression": ...
 
     @keyword_only
     @since("1.3.0")
@@ -1569,17 +1557,11 @@ class LogisticRegressionModel(
         """
         if self.hasSummary:
             if self.numClasses <= 2:
-                return BinaryLogisticRegressionTrainingSummary(
-                    super(LogisticRegressionModel, self).summary
-                )
+                return BinaryLogisticRegressionTrainingSummary(super(LogisticRegressionModel, self).summary)
             else:
-                return LogisticRegressionTrainingSummary(
-                    super(LogisticRegressionModel, self).summary
-                )
+                return LogisticRegressionTrainingSummary(super(LogisticRegressionModel, self).summary)
         else:
-            raise RuntimeError(
-                "No training summary available for this %s" % self.__class__.__name__
-            )
+            raise RuntimeError("No training summary available for this %s" % self.__class__.__name__)
 
     def evaluate(self, dataset: DataFrame) -> "LogisticRegressionSummary":
         """
@@ -2301,9 +2283,7 @@ class RandomForestClassificationModel(
                     super(RandomForestClassificationModel, self).summary
                 )
         else:
-            raise RuntimeError(
-                "No training summary available for this %s" % self.__class__.__name__
-            )
+            raise RuntimeError("No training summary available for this %s" % self.__class__.__name__)
 
     def evaluate(
         self, dataset: DataFrame
@@ -2338,9 +2318,7 @@ class RandomForestClassificationSummary(_ClassificationSummary):
 
 
 @inherit_doc
-class RandomForestClassificationTrainingSummary(
-    RandomForestClassificationSummary, _TrainingSummary
-):
+class RandomForestClassificationTrainingSummary(RandomForestClassificationSummary, _TrainingSummary):
     """
     Abstraction for RandomForestClassificationTraining Training results.
 
@@ -2571,9 +2549,7 @@ class GBTClassifier(
                  weightCol=None)
         """
         super(GBTClassifier, self).__init__()
-        self._java_obj = self._new_java_obj(
-            "org.apache.spark.ml.classification.GBTClassifier", self.uid
-        )
+        self._java_obj = self._new_java_obj("org.apache.spark.ml.classification.GBTClassifier", self.uid)
         kwargs = self._input_kwargs
         self.setParams(**kwargs)
 
@@ -2951,9 +2927,7 @@ class NaiveBayes(
                  modelType="multinomial", thresholds=None, weightCol=None)
         """
         super(NaiveBayes, self).__init__()
-        self._java_obj = self._new_java_obj(
-            "org.apache.spark.ml.classification.NaiveBayes", self.uid
-        )
+        self._java_obj = self._new_java_obj("org.apache.spark.ml.classification.NaiveBayes", self.uid)
         kwargs = self._input_kwargs
         self.setParams(**kwargs)
 
@@ -3331,9 +3305,7 @@ class MultilayerPerceptronClassificationModel(
                 super(MultilayerPerceptronClassificationModel, self).summary
             )
         else:
-            raise RuntimeError(
-                "No training summary available for this %s" % self.__class__.__name__
-            )
+            raise RuntimeError("No training summary available for this %s" % self.__class__.__name__)
 
     def evaluate(self, dataset: DataFrame) -> "MultilayerPerceptronClassificationSummary":
         """
@@ -3542,18 +3514,14 @@ class OneVsRest(
         predictionCol = self.getPredictionCol()
         classifier = self.getClassifier()
 
-        numClasses = (
-            int(cast(Row, dataset.agg({labelCol: "max"}).head())["max(" + labelCol + ")"]) + 1
-        )
+        numClasses = int(cast(Row, dataset.agg({labelCol: "max"}).head())["max(" + labelCol + ")"]) + 1
 
         weightCol = None
         if self.isDefined(self.weightCol) and self.getWeightCol():
             if isinstance(classifier, HasWeightCol):
                 weightCol = self.getWeightCol()
             else:
-                warnings.warn(
-                    "weightCol is ignored, " "as it is not supported by {} now.".format(classifier)
-                )
+                warnings.warn("weightCol is ignored, " "as it is not supported by {} now.".format(classifier))
 
         if weightCol:
             multiclassLabeled = dataset.select(labelCol, featuresCol, weightCol)
@@ -3650,9 +3618,7 @@ class OneVsRest(
         py4j.java_gateway.JavaObject
             Java object equivalent to this instance.
         """
-        _java_obj = JavaParams._new_java_obj(
-            "org.apache.spark.ml.classification.OneVsRest", self.uid
-        )
+        _java_obj = JavaParams._new_java_obj("org.apache.spark.ml.classification.OneVsRest", self.uid)
         _java_obj.setClassifier(cast(_JavaClassifier, self.getClassifier())._to_java())
         _java_obj.setParallelism(self.getParallelism())
         _java_obj.setFeaturesCol(self.getFeaturesCol())
@@ -3678,22 +3644,22 @@ class _OneVsRestSharedReadWrite:
     @staticmethod
     def saveImpl(
         instance: Union[OneVsRest, "OneVsRestModel"],
-        sc: "SparkContext",
+        sparkSession: SparkSession,
         path: str,
         extraMetadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         skipParams = ["classifier"]
         jsonParams = DefaultParamsWriter.extractJsonParams(instance, skipParams)
         DefaultParamsWriter.saveMetadata(
-            instance, path, sc, paramMap=jsonParams, extraMetadata=extraMetadata
+            instance, path, sparkSession, paramMap=jsonParams, extraMetadata=extraMetadata
         )
         classifierPath = os.path.join(path, "classifier")
         cast(MLWritable, instance.getClassifier()).save(classifierPath)
 
     @staticmethod
-    def loadClassifier(path: str, sc: "SparkContext") -> Union[OneVsRest, "OneVsRestModel"]:
+    def loadClassifier(path: str, sparkSession: SparkSession) -> Union[OneVsRest, "OneVsRestModel"]:
         classifierPath = os.path.join(path, "classifier")
-        return DefaultParamsReader.loadParamsInstance(classifierPath, sc)
+        return DefaultParamsReader.loadParamsInstance(classifierPath, sparkSession)
 
     @staticmethod
     def validateParams(instance: Union[OneVsRest, "OneVsRestModel"]) -> None:
@@ -3704,8 +3670,7 @@ class _OneVsRestSharedReadWrite:
         for elem in elems_to_check:
             if not isinstance(elem, MLWritable):
                 raise ValueError(
-                    f"OneVsRest write will fail because it contains {elem.uid} "
-                    f"which is not writable."
+                    f"OneVsRest write will fail because it contains {elem.uid} " f"which is not writable."
                 )
 
 
@@ -3716,11 +3681,11 @@ class OneVsRestReader(MLReader[OneVsRest]):
         self.cls = cls
 
     def load(self, path: str) -> OneVsRest:
-        metadata = DefaultParamsReader.loadMetadata(path, self.sc)
+        metadata = DefaultParamsReader.loadMetadata(path, self.sparkSession)
         if not DefaultParamsReader.isPythonParamsInstance(metadata):
             return JavaMLReader(self.cls).load(path)  # type: ignore[arg-type]
         else:
-            classifier = cast(Classifier, _OneVsRestSharedReadWrite.loadClassifier(path, self.sc))
+            classifier = cast(Classifier, _OneVsRestSharedReadWrite.loadClassifier(path, self.sparkSession))
             ova: OneVsRest = OneVsRest(classifier=classifier)._resetUid(metadata["uid"])
             DefaultParamsReader.getAndSetParams(ova, metadata, skipParams=["classifier"])
             return ova
@@ -3734,7 +3699,7 @@ class OneVsRestWriter(MLWriter):
 
     def saveImpl(self, path: str) -> None:
         _OneVsRestSharedReadWrite.validateParams(self.instance)
-        _OneVsRestSharedReadWrite.saveImpl(self.instance, self.sc, path)
+        _OneVsRestSharedReadWrite.saveImpl(self.instance, self.sparkSession, path)
 
 
 class OneVsRestModel(
@@ -3829,9 +3794,7 @@ class OneVsRestModel(
             newColumns = origCols + [tmpColName]
 
             # switch out the intermediate column with the accumulator column
-            aggregatedDataset = updatedDataset.select(*newColumns).withColumnRenamed(
-                tmpColName, accColName
-            )
+            aggregatedDataset = updatedDataset.select(*newColumns).withColumnRenamed(tmpColName, accColName)
 
         if handlePersistence:
             newDataset.unpersist()
@@ -3852,9 +3815,7 @@ class OneVsRestModel(
         if self.getPredictionCol():
             # output the index of the classifier with highest confidence as prediction
             labelUDF = udf(
-                lambda predictions: float(
-                    max(enumerate(predictions), key=operator.itemgetter(1))[0]
-                ),
+                lambda predictions: float(max(enumerate(predictions), key=operator.itemgetter(1))[0]),
                 DoubleType(),
             )
             aggregatedDataset = aggregatedDataset.withColumn(
@@ -3896,9 +3857,7 @@ class OneVsRestModel(
         labelCol = java_stage.getLabelCol()
         predictionCol = java_stage.getPredictionCol()
         classifier: Classifier = JavaParams._from_java(java_stage.getClassifier())
-        models: List[ClassificationModel] = [
-            JavaParams._from_java(model) for model in java_stage.models()
-        ]
+        models: List[ClassificationModel] = [JavaParams._from_java(model) for model in java_stage.models()]
         py_stage = cls(models=models).setPredictionCol(predictionCol).setFeaturesCol(featuresCol)
         py_stage._set(labelCol=labelCol)
         if java_stage.isDefined(java_stage.getParam("weightCol")):
@@ -3963,19 +3922,17 @@ class OneVsRestModelReader(MLReader[OneVsRestModel]):
         self.cls = cls
 
     def load(self, path: str) -> OneVsRestModel:
-        metadata = DefaultParamsReader.loadMetadata(path, self.sc)
+        metadata = DefaultParamsReader.loadMetadata(path, self.sparkSession)
         if not DefaultParamsReader.isPythonParamsInstance(metadata):
             return JavaMLReader(self.cls).load(path)  # type: ignore[arg-type]
         else:
-            classifier = _OneVsRestSharedReadWrite.loadClassifier(path, self.sc)
+            classifier = _OneVsRestSharedReadWrite.loadClassifier(path, self.sparkSession)
             numClasses = metadata["numClasses"]
             subModels = [None] * numClasses
             for idx in range(numClasses):
                 subModelPath = os.path.join(path, f"model_{idx}")
-                subModels[idx] = DefaultParamsReader.loadParamsInstance(subModelPath, self.sc)
-            ovaModel = OneVsRestModel(cast(List[ClassificationModel], subModels))._resetUid(
-                metadata["uid"]
-            )
+                subModels[idx] = DefaultParamsReader.loadParamsInstance(subModelPath, self.sparkSession)
+            ovaModel = OneVsRestModel(cast(List[ClassificationModel], subModels))._resetUid(metadata["uid"])
             ovaModel.set(ovaModel.classifier, classifier)
             DefaultParamsReader.getAndSetParams(ovaModel, metadata, skipParams=["classifier"])
             return ovaModel
@@ -3992,7 +3949,7 @@ class OneVsRestModelWriter(MLWriter):
         instance = self.instance
         numClasses = len(instance.models)
         extraMetadata = {"numClasses": numClasses}
-        _OneVsRestSharedReadWrite.saveImpl(instance, self.sc, path, extraMetadata=extraMetadata)
+        _OneVsRestSharedReadWrite.saveImpl(instance, self.sparkSession, path, extraMetadata=extraMetadata)
         for idx in range(numClasses):
             subModelPath = os.path.join(path, f"model_{idx}")
             cast(MLWritable, instance.models[idx]).save(subModelPath)
@@ -4098,9 +4055,7 @@ class FMClassifier(
                  tol=1e-6, solver="adamW", thresholds=None, seed=None)
         """
         super(FMClassifier, self).__init__()
-        self._java_obj = self._new_java_obj(
-            "org.apache.spark.ml.classification.FMClassifier", self.uid
-        )
+        self._java_obj = self._new_java_obj("org.apache.spark.ml.classification.FMClassifier", self.uid)
         kwargs = self._input_kwargs
         self.setParams(**kwargs)
 
@@ -4265,9 +4220,7 @@ class FMClassificationModel(
         if self.hasSummary:
             return FMClassificationTrainingSummary(super(FMClassificationModel, self).summary)
         else:
-            raise RuntimeError(
-                "No training summary available for this %s" % self.__class__.__name__
-            )
+            raise RuntimeError("No training summary available for this %s" % self.__class__.__name__)
 
     def evaluate(self, dataset: DataFrame) -> "FMClassificationSummary":
         """

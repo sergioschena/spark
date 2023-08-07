@@ -26,13 +26,12 @@ import org.apache.hadoop.fs.Path
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
-import org.apache.spark.SparkContext
 import org.apache.spark.annotation.{DeveloperApi, Since}
 import org.apache.spark.internal.Logging
 import org.apache.spark.ml.param.{Param, ParamMap, Params}
 import org.apache.spark.ml.util._
 import org.apache.spark.ml.util.Instrumentation.instrumented
-import org.apache.spark.sql.{DataFrame, Dataset}
+import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.util.ArrayImplicits._
 
@@ -204,7 +203,7 @@ object Pipeline extends MLReadable[Pipeline] {
     override def save(path: String): Unit =
       instrumented(_.withSaveInstanceEvent(this, path)(super.save(path)))
     override protected def saveImpl(path: String): Unit =
-      SharedReadWrite.saveImpl(instance, instance.getStages, sc, path)
+      SharedReadWrite.saveImpl(instance, instance.getStages, sparkSession, path)
   }
 
   private class PipelineReader extends MLReader[Pipeline] {
@@ -213,7 +212,8 @@ object Pipeline extends MLReadable[Pipeline] {
     private val className = classOf[Pipeline].getName
 
     override def load(path: String): Pipeline = instrumented(_.withLoadInstanceEvent(this, path) {
-      val (uid: String, stages: Array[PipelineStage]) = SharedReadWrite.load(className, sc, path)
+      val (uid: String, stages: Array[PipelineStage]) = SharedReadWrite.load(className,
+        sparkSession, path)
       new Pipeline(uid).setStages(stages)
     })
   }
@@ -244,11 +244,11 @@ object Pipeline extends MLReadable[Pipeline] {
     def saveImpl(
         instance: Params,
         stages: Array[PipelineStage],
-        sc: SparkContext,
+        sparkSession: SparkSession,
         path: String): Unit = instrumented { instr =>
       val stageUids = stages.map(_.uid)
       val jsonParams = List("stageUids" -> parse(compact(render(stageUids.toImmutableArraySeq))))
-      DefaultParamsWriter.saveMetadata(instance, path, sc, paramMap = Some(jsonParams))
+      DefaultParamsWriter.saveMetadata(instance, path, sparkSession, paramMap = Some(jsonParams))
 
       // Save stages
       val stagesDir = new Path(path, "stages").toString
@@ -265,16 +265,17 @@ object Pipeline extends MLReadable[Pipeline] {
      */
     def load(
         expectedClassName: String,
-        sc: SparkContext,
+        sparkSession: SparkSession,
         path: String): (String, Array[PipelineStage]) = instrumented { instr =>
-      val metadata = DefaultParamsReader.loadMetadata(path, sc, expectedClassName)
+      val metadata = DefaultParamsReader.loadMetadata(path, sparkSession, expectedClassName)
 
       implicit val format = DefaultFormats
       val stagesDir = new Path(path, "stages").toString
       val stageUids: Array[String] = (metadata.params \ "stageUids").extract[Seq[String]].toArray
       val stages: Array[PipelineStage] = stageUids.zipWithIndex.map { case (stageUid, idx) =>
         val stagePath = SharedReadWrite.getStagePath(stageUid, idx, stageUids.length, stagesDir)
-        val reader = DefaultParamsReader.loadParamsInstanceReader[PipelineStage](stagePath, sc)
+        val reader = DefaultParamsReader.loadParamsInstanceReader[PipelineStage](stagePath,
+          sparkSession)
         instr.withLoadInstanceEvent(reader, stagePath)(reader.load(stagePath))
       }
       (metadata.uid, stages)
@@ -344,7 +345,7 @@ object PipelineModel extends MLReadable[PipelineModel] {
     override def save(path: String): Unit =
       instrumented(_.withSaveInstanceEvent(this, path)(super.save(path)))
     override protected def saveImpl(path: String): Unit = SharedReadWrite.saveImpl(instance,
-      instance.stages.asInstanceOf[Array[PipelineStage]], sc, path)
+      instance.stages.asInstanceOf[Array[PipelineStage]], sparkSession, path)
   }
 
   private class PipelineModelReader extends MLReader[PipelineModel] {
@@ -354,7 +355,8 @@ object PipelineModel extends MLReadable[PipelineModel] {
 
     override def load(path: String): PipelineModel = instrumented(_.withLoadInstanceEvent(
         this, path) {
-      val (uid: String, stages: Array[PipelineStage]) = SharedReadWrite.load(className, sc, path)
+      val (uid: String, stages: Array[PipelineStage]) = SharedReadWrite.load(className,
+        sparkSession, path)
       val transformers = stages map {
         case stage: Transformer => stage
         case other => throw new RuntimeException(s"PipelineModel.read loaded a stage but found it" +

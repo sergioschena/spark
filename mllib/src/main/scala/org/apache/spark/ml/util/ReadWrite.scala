@@ -382,7 +382,7 @@ trait DefaultParamsReadable[T] extends MLReadable[T] {
 private[ml] class DefaultParamsWriter(instance: Params) extends MLWriter {
 
   override protected def saveImpl(path: String): Unit = {
-    DefaultParamsWriter.saveMetadata(instance, path, sc)
+    DefaultParamsWriter.saveMetadata(instance, path, sparkSession)
   }
 }
 
@@ -406,12 +406,14 @@ private[ml] object DefaultParamsWriter {
   def saveMetadata(
       instance: Params,
       path: String,
-      sc: SparkContext,
+      sparkSession: SparkSession,
       extraMetadata: Option[JObject] = None,
       paramMap: Option[JValue] = None): Unit = {
     val metadataPath = new Path(path, "metadata").toString
-    val metadataJson = getMetadataToSave(instance, sc, extraMetadata, paramMap)
-    sc.parallelize(Seq(metadataJson), 1).saveAsTextFile(metadataPath)
+    val metadataJson = getMetadataToSave(instance, sparkSession.sparkContext, extraMetadata,
+      paramMap)
+    import sparkSession.implicits._
+    Seq(metadataJson).toDF.repartition(1).write.text(metadataPath)
   }
 
   /**
@@ -463,7 +465,7 @@ private[ml] object DefaultParamsWriter {
 private[ml] class DefaultParamsReader[T] extends MLReader[T] {
 
   override def load(path: String): T = {
-    val metadata = DefaultParamsReader.loadMetadata(path, sc)
+    val metadata = DefaultParamsReader.loadMetadata(path, sparkSession)
     val cls = Utils.classForName(metadata.className)
     val instance =
       cls.getConstructor(classOf[String]).newInstance(metadata.uid).asInstanceOf[Params]
@@ -583,9 +585,12 @@ private[ml] object DefaultParamsReader {
    * @param expectedClassName  If non empty, this is checked against the loaded metadata.
    * @throws IllegalArgumentException if expectedClassName is specified and does not match metadata
    */
-  def loadMetadata(path: String, sc: SparkContext, expectedClassName: String = ""): Metadata = {
+  def loadMetadata(
+      path: String,
+      sparkSession: SparkSession,
+      expectedClassName: String = ""): Metadata = {
     val metadataPath = new Path(path, "metadata").toString
-    val metadataStr = sc.textFile(metadataPath, 1).first()
+    val metadataStr = sparkSession.read.text(metadataPath).first().getString(0)
     parseMetadata(metadataStr, expectedClassName)
   }
 
@@ -619,15 +624,15 @@ private[ml] object DefaultParamsReader {
    * Load a `Params` instance from the given path, and return it.
    * This assumes the instance implements [[MLReadable]].
    */
-  def loadParamsInstance[T](path: String, sc: SparkContext): T =
-    loadParamsInstanceReader(path, sc).load(path)
+  def loadParamsInstance[T](path: String, sparkSession: SparkSession): T =
+    loadParamsInstanceReader(path, sparkSession).load(path)
 
   /**
    * Load a `Params` instance reader from the given path, and return it.
    * This assumes the instance implements [[MLReadable]].
    */
-  def loadParamsInstanceReader[T](path: String, sc: SparkContext): MLReader[T] = {
-    val metadata = DefaultParamsReader.loadMetadata(path, sc)
+  def loadParamsInstanceReader[T](path: String, sparkSession: SparkSession): MLReader[T] = {
+    val metadata = DefaultParamsReader.loadMetadata(path, sparkSession)
     val cls = Utils.classForName(metadata.className)
     cls.getMethod("read").invoke(null).asInstanceOf[MLReader[T]]
   }
